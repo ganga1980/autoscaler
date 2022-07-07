@@ -53,6 +53,8 @@ var (
 	deployment    = flag.String("deployment", "", "The name of the deployment being monitored. This is required.")
 	podName       = flag.String("pod", os.Getenv("MY_POD_NAME"), "The name of the pod to watch. This defaults to the nanny's own pod.")
 	containerName = flag.String("container", "pod-nanny", "The name of the container to watch. This defaults to the nanny itself.")
+	// Flag to disable scaling up & down of the requests
+	ignoreResourceRequests = flag.Bool("ignore-resource-requests", false, "If this is true, then resource requests will be ignored for scale up or down.")
 	// Flags to control runtime behavior.
 	pollPeriodMillis = flag.Int("poll-period", 10000, "The time, in milliseconds, to poll the dependent container.")
 )
@@ -125,6 +127,9 @@ func main() {
 	log.Infof("Version: %s", nanny.AddonResizerVersion)
 	log.Infof("Poll period: %+v", pollPeriod)
 	log.Infof("Watching namespace: %s, pod: %s, container: %s.", *podNamespace, *podName, *containerName)
+	if *ignoreResourceRequests {
+		log.Infof("Resource requests are not scaled up or down since disable-resource-requests is set true")
+	}
 	log.Infof("cpu: %s, extra_cpu: %s, memory: %s, extra_memory: %s, storage: %s, extra_storage: %s", *baseCPU, *cpuPerNode, *baseMemory, *memoryPerNode, *baseStorage, *storagePerNode)
 	log.Infof("Accepted range +/-%d%%", *acceptanceOffset)
 	log.Infof("Recommended range +/-%d%%", *recommendationOffset)
@@ -137,7 +142,7 @@ func main() {
 		kubeClient = GetClientOrDie()
 	}
 
-	k8s := nanny.NewKubernetesClient(kubeClient, *podNamespace, *deployment, *podName, *containerName)
+	k8s := nanny.NewKubernetesClient(kubeClient, *podNamespace, *deployment, *podName, *containerName, *ignoreResourceRequests)
 
 	var resources []nanny.Resource
 
@@ -188,5 +193,6 @@ func main() {
 		},
 		pollPeriod,
 		*scaleDownDelay,
-		*scaleUpDelay)
+		*scaleUpDelay,
+		*ignoreResourceRequests)
 }

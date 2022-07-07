@@ -238,7 +238,7 @@ func TestShouldOverwriteResources(t *testing.T) {
 		{smallMemoryNoStorage, standardRecommendedNoStorage, &api.ResourceRequirements{belowStandardNoStorage, belowStandardNoStorage}, scaleUp},
 	}
 	for i, tc := range testCases {
-		gotRes, gotOp := shouldOverwriteResources(tc.e, tc.res, tc.res)
+		gotRes, gotOp := shouldOverwriteResources(tc.e, tc.res, tc.res, false)
 		if !reflect.DeepEqual(tc.wantRes, gotRes) || !reflect.DeepEqual(tc.wantOp, gotOp) {
 			t.Errorf("shouldOverwriteResources got (%v, %v), want (%v, %v) for test case %d.", gotRes, gotOp, tc.wantRes, tc.wantOp, i)
 		}
@@ -280,7 +280,7 @@ func TestUpdateResources(t *testing.T) {
 	for i, tc := range testCases {
 		k8s := newFakeKubernetesClient(10, tc.res, tc.res)
 		est := newFakeResourceEstimator(tc.e)
-		got := updateResources(k8s, est, now, tc.lc, tc.sdd, tc.sud, noChange)
+		got := updateResources(k8s, est, now, tc.lc, tc.sdd, tc.sud, noChange, false)
 		if tc.want != got {
 			t.Errorf("updateResources got %d, want %d for test case %d.", got, tc.want, i)
 		}

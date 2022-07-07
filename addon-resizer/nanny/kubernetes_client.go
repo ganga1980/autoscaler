@@ -32,19 +32,20 @@ import (
 )
 
 type kubernetesClient struct {
-	nodeLister       v1lister.NodeLister
-	podLister        v1lister.PodNamespaceLister
-	deploymentLister v1appslister.DeploymentNamespaceLister
-	deploymentClient kube_client_apps.DeploymentInterface
-	namespace        string
-	deployment       string
-	pod              string
-	container        string
-	stopChannels     []chan<- struct{}
+	nodeLister             v1lister.NodeLister
+	podLister              v1lister.PodNamespaceLister
+	deploymentLister       v1appslister.DeploymentNamespaceLister
+	deploymentClient       kube_client_apps.DeploymentInterface
+	namespace              string
+	deployment             string
+	pod                    string
+	container              string
+	ignoreResourceRequests bool
+	stopChannels           []chan<- struct{}
 }
 
 // NewKubernetesClient gives a KubernetesClient with the given dependencies.
-func NewKubernetesClient(kubeClient kube_client.Interface, namespace, deployment, pod, container string) KubernetesClient {
+func NewKubernetesClient(kubeClient kube_client.Interface, namespace, deployment, pod, container string, ignoreResourceRequests bool) KubernetesClient {
 	stops := []chan<- struct{}{}
 
 	nodeLister, stopCh := newReadyNodeLister(kubeClient)
@@ -57,15 +58,16 @@ func NewKubernetesClient(kubeClient kube_client.Interface, namespace, deployment
 	stops = append(stops, stopCh)
 
 	result := &kubernetesClient{
-		namespace:        namespace,
-		deployment:       deployment,
-		pod:              pod,
-		container:        container,
-		nodeLister:       nodeLister,
-		podLister:        podLister,
-		deploymentLister: deploymentLister,
-		deploymentClient: kubeClient.AppsV1().Deployments(namespace),
-		stopChannels:     stops,
+		namespace:              namespace,
+		deployment:             deployment,
+		pod:                    pod,
+		container:              container,
+		ignoreResourceRequests: ignoreResourceRequests,
+		nodeLister:             nodeLister,
+		podLister:              podLister,
+		deploymentLister:       deploymentLister,
+		deploymentClient:       kubeClient.AppsV1().Deployments(namespace),
+		stopChannels:           stops,
 	}
 	return result
 }
@@ -107,7 +109,11 @@ func (k *kubernetesClient) UpdateDeployment(resources *core.ResourceRequirements
 	for i, container := range dep.Spec.Template.Spec.Containers {
 		if container.Name == k.container {
 			// Update the deployment.
-			dep.Spec.Template.Spec.Containers[i].Resources = *resources
+			if k.ignoreResourceRequests {
+				dep.Spec.Template.Spec.Containers[i].Resources.Limits = *&resources.Limits
+			} else {
+				dep.Spec.Template.Spec.Containers[i].Resources = *resources
+			}
 			_, err := k.deploymentClient.Update(dep)
 			return err
 		}

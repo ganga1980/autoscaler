@@ -38,6 +38,7 @@ Usage of ./pod_nanny:
       --recommendation-offset=10: A number from range 0-100. When the dependent's resources are rewritten, they are set to the closer end of the range defined by this percentage threshold.
       --stderrthreshold=2: logs at or above this threshold go to stderr
       --storage="MISSING": The base storage resource requirement.
+      --ignoreResourceRequests=false: ignoring scaling up or down of the resource requests.
       --v=0: log level for V logs
       --vmodule=: comma-separated list of pattern=N settings for file-filtered logging
 ```
@@ -77,7 +78,7 @@ parameters:
   *Note: Addon Resizer uses buckets of cluster sizes, so it will use n larger
   than the cluster size by up to 50% for clusters larger than 16 nodes. For
   smaller clusters, n = 16 will be used.*
- 
+
 2. Memory parameters:
   ```
   --memory
